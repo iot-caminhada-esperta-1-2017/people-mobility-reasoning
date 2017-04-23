@@ -4,8 +4,16 @@ import json
 import logging
 import logging.config
 
+from raise2_self_register.raise2_self_register import Raise2SelfRegister
+from load_dict_from_file.load_dict_from_file import get_dict_from_file
+
+
 
 CONFIG_LOG_FILE = 'config/log.conf'
+CONFIG_RAISE2_FILE = 'config/raise2.conf'
+
+# TODO: put it all into a dictionary with the aplication configuration
+APP_NAME = 'PeopleMobilityReasoning'
 
 
 
@@ -34,3 +42,11 @@ def setup_logging(
 if __name__ == '__main__':
     setup_logging()
     logging.info("Starting People Mobility Reasoning")
+
+    raise2_config = get_dict_from_file(CONFIG_RAISE2_FILE)
+    from pprint import pprint
+    pprint(raise2_config)
+
+    self_register = Raise2SelfRegister(raise2_config)
+    # self_register.self_register()
+    self_register.register_ugly_way()
