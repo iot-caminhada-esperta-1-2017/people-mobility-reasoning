@@ -1,9 +1,5 @@
 import requests
-import sys
 import json
-import socket
-import threading
-import os
 import logging
 
 
@@ -115,7 +111,7 @@ class Raise2SelfRegister:
             logging.info("client register worked")
             logging.debug("we got this token id: %s" % self.__token_id)
         else:
-            logging.info("something's got wrong and we got no token")
+            logging.error("something's got wrong and we got no token")
 
         if res:
             self.__do_service_call(HttpRaise2Call.SERVICE_REGISTER)
