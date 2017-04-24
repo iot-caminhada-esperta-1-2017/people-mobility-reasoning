@@ -46,13 +46,11 @@ if __name__ == '__main__':
 
     raise2_config = get_dict_from_file(CONFIG_RAISE2_FILE)
 
-    # logging.debug("raise2_config:")
-    # logging.debug(raise2_config)
-    # ugly_self_register = Raise2SelfRegisterUglyWay(raise2_config)
-    # ugly_self_register.self_register()
+    logging.info("Registering in the ugly way")
+    ugly_self_register = Raise2SelfRegisterUglyWay(raise2_config)
+    ugly_self_register.self_register()
 
     logging.info("-----------------------------")
-    # logging.debug("raise2_config:")
-    # logging.debug(raise2_config)
+    logging.info("Registering in a prettier way")
     self_register = Raise2SelfRegister(raise2_config)
     self_register.self_register()
