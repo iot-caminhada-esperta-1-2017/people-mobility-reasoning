@@ -17,8 +17,6 @@ class HttpRaise2Call:
 
     def __init__(self, config):
         self.__config = {}
-        # logging.debug("config is:")
-        # logging.debug(config)
         self.__config["uri"] = config['uri']
         self.__config["method"] = config["http_method"]
         self.__config["base_uri"] = config["raise2_api_uri"]
@@ -33,9 +31,7 @@ class HttpRaise2Call:
             req = requests.post(url, data=json.dumps(data), headers=headers)
         else:
             req = None
-        # logging.debug("> status_code %s" % req.status_code)
         logging.debug("> content: %s" % req.content)
-        # logging.debug(req.content)
 
         if req.json()['code'] is 200:
             return req.content
@@ -119,7 +115,6 @@ class Raise2SelfRegister:
             logging.info("client register worked")
             logging.debug("we got this token id: %s" % self.__token_id)
         else:
-            # logging.info("something's got wrong and we got %s" % (res.json()['code']))
             logging.info("something's got wrong and we got no token")
 
         if res:
@@ -127,46 +122,10 @@ class Raise2SelfRegister:
 
     def __do_service_call(self, service_key):
         service_config = self.__get_config__(service_key)
-        # logging.debug("> service_config - trabalhado")
-        # logging.debug(service_config)
         service_runner = HttpRaise2Call(service_config)
         payload_data = self.__build_payload_data__(service_key)
         return service_runner.call(payload_data)
 
-        # def __do_client_registry(self):
-        #     service_config = self.__get_config__(HttpRaise2Call.CLIENT_REGISTER)
-        #     # logging.debug("> service_config - trabalhado")
-        #     # logging.debug(service_config)
-        #     client_register = HttpRaise2Call(service_config)
-        #     payload_data = {
-        #         "name": "RaspberryPI",
-        #         "chipset": "AMD790FX",
-        #         "mac": "FF:FF:FF:FF:FF:FF",
-        #         "serial": "C213",
-        #         "processor": "IntelI3",
-        #         "channel": "Ethernet",
-        #         "client_time": 1317427200,
-        #         "tag": [
-        #             "cebola"
-        #         ]
-        #     }
-        #     return client_register.call(payload_data)
-
-        # def __do_service_registry(self):
-        #     service_register = HttpRaise2Call(HttpRaise2Call.SERVICE_REGISTER)
-        #     payload_data = {
-        #         "name": "RaspberryPI",
-        #         "chipset": "AMD790FX",
-        #         "mac": "FF:FF:FF:FF:FF:FF",
-        #         "serial": "C213",
-        #         "processor": "IntelI3",
-        #         "channel": "Ethernet",
-        #         "client_time": 1317427200,
-        #         "tag": [
-        #             "cebola"
-        #         ]
-        #     }
-        #     return service_register.call(payload_data)
 
 
 class Raise2SelfRegisterUglyWay:
