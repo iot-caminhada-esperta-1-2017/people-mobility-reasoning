@@ -125,17 +125,18 @@ class Raise2SelfRegister:
     """
     def self_register(self):
         res = self.__do_service_call(HttpRaise2Call.CLIENT_REGISTER)
-        logging.debug("resultado foi")
-        logging.debug(res)
+        # logging.debug("resultado foi")
+        # logging.debug(res)
         if res:
             json_res = json.loads(res)
             self.__token_id = json_res['tokenId']
-#            self.__token_id = json_res.json()['tokenId']
-            logging.info("client register worked")
             logging.debug("we got this token id: %s" % self.__token_id)
             res = self.__do_service_call(HttpRaise2Call.SERVICE_REGISTER)
-            services_registered = json.loads(res)
-            logging.debug(services_registered)
+            if res:
+                services_registered = json.loads(res)
+                logging.debug(services_registered)
+            else:
+                logging.error("something's got wrong when we tried to register our service")
         else:
             logging.error("something's got wrong and we got no token")
 
@@ -144,7 +145,6 @@ class Raise2SelfRegister:
         service_runner = HttpRaise2Call(service_config)
         payload_data = self.__build_payload_data__(service_key)
         return service_runner.call(payload_data)
-
 
 
 class Raise2SelfRegisterUglyWay:
