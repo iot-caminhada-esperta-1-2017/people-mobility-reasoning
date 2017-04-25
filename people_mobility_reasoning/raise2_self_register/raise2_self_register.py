@@ -25,22 +25,32 @@ class HttpRaise2Call:
         headers = {'content-type': 'application/json', 'Accept': 'application/json'}
         req = None
         try:
-            req = requests.request(self.__config["method"], url, data=json.dumps(data_to_sent), headers=headers, timeout=self.__config["timeout"])
+            p = json.dumps(data_to_sent)
+            logging.debug("{} {} headers={} payload={}".format(self.__config["method"], url, headers, p))
+            req = requests.request(self.__config["method"], url, data=p, headers=headers, timeout=self.__config["timeout"]) #p=json.dumps(data_to_sent)
             req.raise_for_status()
         except requests.exceptions.HTTPError as err:
             logging.error(err)
+            return None
         except requests.exceptions.Timeout as err:
             # Maybe set up for a retry, or continue in a retry loop
             logging.error(err)
+            return None
         except requests.exceptions.TooManyRedirects as err:
             # Tell the user their URL was bad and try a different one
             logging.error(err)
+            return None
         except requests.exceptions.RequestException as e:
             # catastrophic error. bail.
             logging.error(e)
 
-        if req and req.json()['code'] is 200:
-            logging.debug("> content: %s" % req.content)
+        # logging.debug(req.content)
+        # logging.debug("JSON")
+        # logging.debug(req.json()['code'])
+#        if req and req.json()['code'] is 200:
+        code_result = req.json()['code']
+        if code_result == '200':
+            # logging.debug("> content: %s" % req.content)
             return req.content
         else:
             return None
@@ -89,7 +99,6 @@ class Raise2SelfRegister:
         elif service_key == HttpRaise2Call.SERVICE_REGISTER:
             # TODO: build the payload for real
             payload_data = {
-                {
                     "services": [
                         {
                             "name": "Get temp",
@@ -102,9 +111,8 @@ class Raise2SelfRegister:
                     "tokenId": self.__token_id,
                     "client_time": time.time(),
                     "tag": [
-                        "Cebola"
-                    ]
-                }
+                        "cebola"
+                ]
             }
         else:
             payload_data = {}
@@ -117,15 +125,19 @@ class Raise2SelfRegister:
     """
     def self_register(self):
         res = self.__do_service_call(HttpRaise2Call.CLIENT_REGISTER)
+        logging.debug("resultado foi")
+        logging.debug(res)
         if res:
-            self.__token_id = res.json()['token_id']
+            json_res = json.loads(res)
+            self.__token_id = json_res['tokenId']
+#            self.__token_id = json_res.json()['tokenId']
             logging.info("client register worked")
             logging.debug("we got this token id: %s" % self.__token_id)
+            res = self.__do_service_call(HttpRaise2Call.SERVICE_REGISTER)
+            services_registered = json.loads(res)
+            logging.debug(services_registered)
         else:
             logging.error("something's got wrong and we got no token")
-
-        if res:
-            self.__do_service_call(HttpRaise2Call.SERVICE_REGISTER)
 
     def __do_service_call(self, service_key):
         service_config = self.__get_config__(service_key)
