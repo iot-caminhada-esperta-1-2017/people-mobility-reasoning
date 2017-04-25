@@ -24,15 +24,11 @@ class HttpRaise2Call:
         url = "%s%s" % (self.__config["base_uri"], self.__config["uri"])
         headers = {'content-type': 'application/json', 'Accept': 'application/json'}
         req = None
-        # if self.__config["method"] == 'get':
-        #     req = requests.get(url, data=json.dumps(data_to_sent), headers=headers, timeout=self.__config["timeout"])
-        # elif self.__config["method"] == 'post':
         try:
             req = requests.request(self.__config["method"], url, data=json.dumps(data_to_sent), headers=headers, timeout=self.__config["timeout"])
             req.raise_for_status()
         except requests.exceptions.HTTPError as err:
             logging.error(err)
-            # sys.exit(1)
         except requests.exceptions.Timeout as err:
             # Maybe set up for a retry, or continue in a retry loop
             logging.error(err)
@@ -42,7 +38,6 @@ class HttpRaise2Call:
         except requests.exceptions.RequestException as e:
             # catastrophic error. bail.
             logging.error(e)
-            # sys.exit(1)
 
         if req and req.json()['code'] is 200:
             logging.debug("> content: %s" % req.content)
