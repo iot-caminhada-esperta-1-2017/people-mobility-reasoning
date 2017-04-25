@@ -1,6 +1,7 @@
 import requests
 import json
 import logging
+import time
 
 
 class HttpRaise2Call:
@@ -16,20 +17,35 @@ class HttpRaise2Call:
         self.__config["uri"] = config['uri']
         self.__config["method"] = config["http_method"]
         self.__config["base_uri"] = config["raise2_api_uri"]
+        self.__config["timeout"] = config["timeout"]
 
-    def call(self, data):
+    def call(self, data_to_sent):
         logging.info("trying to self register in the pretty way")
         url = "%s%s" % (self.__config["base_uri"], self.__config["uri"])
         headers = {'content-type': 'application/json', 'Accept': 'application/json'}
-        if self.__config["method"] == 'get':
-            req = requests.get(url, data=json.dumps(data), headers=headers)
-        elif self.__config["method"] == 'post':
-            req = requests.post(url, data=json.dumps(data), headers=headers)
-        else:
-            req = None
-        logging.debug("> content: %s" % req.content)
+        req = None
+        # if self.__config["method"] == 'get':
+        #     req = requests.get(url, data=json.dumps(data_to_sent), headers=headers, timeout=self.__config["timeout"])
+        # elif self.__config["method"] == 'post':
+        try:
+            req = requests.request(self.__config["method"], url, data=json.dumps(data_to_sent), headers=headers, timeout=self.__config["timeout"])
+            req.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            logging.error(err)
+            # sys.exit(1)
+        except requests.exceptions.Timeout as err:
+            # Maybe set up for a retry, or continue in a retry loop
+            logging.error(err)
+        except requests.exceptions.TooManyRedirects as err:
+            # Tell the user their URL was bad and try a different one
+            logging.error(err)
+        except requests.exceptions.RequestException as e:
+            # catastrophic error. bail.
+            logging.error(e)
+            # sys.exit(1)
 
-        if req.json()['code'] is 200:
+        if req and req.json()['code'] is 200:
+            logging.debug("> content: %s" % req.content)
             return req.content
         else:
             return None
@@ -70,12 +86,12 @@ class Raise2SelfRegister:
                 "serial": "C213",
                 "processor": "IntelI3",
                 "channel": "Ethernet",
-                "client_time": 1317427200,
+                "client_time": time.time(),
                 "tag": [
                     "cebola"
                 ]
             }
-        if service_key == HttpRaise2Call.SERVICE_REGISTER:
+        elif service_key == HttpRaise2Call.SERVICE_REGISTER:
             # TODO: build the payload for real
             payload_data = {
                 {
@@ -89,7 +105,7 @@ class Raise2SelfRegister:
                         }
                     ],
                     "tokenId": self.__token_id,
-                    "client_time": 1317427200,
+                    "client_time": time.time(),
                     "tag": [
                         "Cebola"
                     ]
