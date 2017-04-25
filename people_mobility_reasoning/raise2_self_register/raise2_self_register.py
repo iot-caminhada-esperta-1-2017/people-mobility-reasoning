@@ -3,6 +3,8 @@ import json
 import logging
 import time
 
+from statsmodels.sandbox.nonparametric.densityorthopoly import F2Poly
+
 
 class HttpRaise2Call:
     CLIENT_LIST = 'client_list'
@@ -20,7 +22,7 @@ class HttpRaise2Call:
         self.__config["timeout"] = config["timeout"]
 
     def call(self, data_to_sent):
-        logging.info("trying to self register in the pretty way")
+        # logging.info("trying to self register in the pretty way")
         url = "%s%s" % (self.__config["base_uri"], self.__config["uri"])
         headers = {'content-type': 'application/json', 'Accept': 'application/json'}
         req = None
@@ -124,27 +126,50 @@ class Raise2SelfRegister:
     POST services
     """
     def self_register(self):
-        res = self.__do_service_call(HttpRaise2Call.CLIENT_REGISTER)
-        # logging.debug("resultado foi")
-        # logging.debug(res)
-        if res:
-            json_res = json.loads(res)
-            self.__token_id = json_res['tokenId']
-            logging.debug("we got this token id: %s" % self.__token_id)
-            res = self.__do_service_call(HttpRaise2Call.SERVICE_REGISTER)
-            if res:
-                services_registered = json.loads(res)
-                logging.debug(services_registered)
-            else:
-                logging.error("something's got wrong when we tried to register our service")
-        else:
-            logging.error("something's got wrong and we got no token")
+        if self.__do_register_client():
+            self.__do_register_service()
+        # res = self.__do_service_call(HttpRaise2Call.CLIENT_REGISTER)
+        # # logging.debug("resultado foi")
+        # # logging.debug(res)
+        # if res:
+        #     json_res = json.loads(res)
+        #     self.__token_id = json_res['tokenId']
+        #     logging.debug("we got this token id: %s" % self.__token_id)
+        #     res = self.__do_service_call(HttpRaise2Call.SERVICE_REGISTER)
+        #     if res:
+        #         services_registered = json.loads(res)
+        #         logging.debug(services_registered)
+        #     else:
+        #         logging.error("something's got wrong when we tried to register our service")
+        # else:
+        #     logging.error("something's got wrong and we got no token")
 
     def __do_service_call(self, service_key):
         service_config = self.__get_config__(service_key)
         service_runner = HttpRaise2Call(service_config)
         payload_data = self.__build_payload_data__(service_key)
         return service_runner.call(payload_data)
+
+    def __do_register_client(self):
+        res = self.__do_service_call(HttpRaise2Call.CLIENT_REGISTER)
+        if res:
+            json_res = json.loads(res)
+            self.__token_id = json_res['tokenId']
+            logging.debug("we got this token id: %s" % self.__token_id)
+            return True
+        else:
+            logging.error("something's got wrong and we got no token")
+            return False
+
+    def __do_register_service(self):
+        res = self.__do_service_call(HttpRaise2Call.SERVICE_REGISTER)
+        if res:
+            services_registered = json.loads(res)
+            logging.debug(services_registered)
+            return True
+        else:
+            logging.error("something's got wrong when we tried to register our service")
+            return False
 
 
 class Raise2SelfRegisterUglyWay:
