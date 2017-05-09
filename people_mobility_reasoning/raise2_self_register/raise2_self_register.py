@@ -30,6 +30,7 @@ class HttpRaise2Call:
             p = json.dumps(data_to_sent)
             logging.debug("{} {} headers={} payload={}".format(self.__config["method"], url, headers, p))
             req = requests.request(self.__config["method"], url, data=p, headers=headers, timeout=self.__config["timeout"]) #p=json.dumps(data_to_sent)
+            # logging.debug(req.content)
             req.raise_for_status()
         except requests.exceptions.HTTPError as err:
             logging.error(err)
@@ -87,15 +88,15 @@ class Raise2SelfRegister:
         if service_key == HttpRaise2Call.CLIENT_REGISTER:
             # TODO: build the payload for real
             payload_data = {
-                "name": "RaspberryPI",
-                "chipset": "AMD790FX",
+                "name": "PeopleMobilityReasoning",
+                "chipset": "VM",
                 "mac": "FF:FF:FF:FF:FF:FF",
-                "serial": "C213",
-                "processor": "IntelI3",
+                "serial": "D123",
+                "processor": "VMs",
                 "channel": "Ethernet",
                 "client_time": time.time(),
                 "tag": [
-                    "cebola"
+                    "topicos_1", "TrafegoPessoas", "simulacao", "teste_conexao"
                 ]
             }
         elif service_key == HttpRaise2Call.SERVICE_REGISTER:
@@ -103,18 +104,51 @@ class Raise2SelfRegister:
             payload_data = {
                     "services": [
                         {
-                            "name": "Get temp",
+                            "name": "PeopleMobilityReasoning",
                             "parameters": {
-                                "example_parameter": "float"
+                               # "example_parameter": "float"
                             },
-                            "return_type": "float"
+                            "return_type": "string"
                         }
                     ],
                     "tokenId": self.__token_id,
                     "client_time": time.time(),
                     "tag": [
-                        "cebola"
+                        "topicos_1", "TrafegoPessoas", "simulacao", "teste_conexao"
                 ]
+            }
+        elif service_key == HttpRaise2Call.DATA_REGISTER:
+            # TODO: build the payload for real
+            payload_data = {
+
+                    "token": self.__token_id,
+                    "client_time": time.time(),
+                    "tag": [
+                        "topicos_1", "TrafegoPessoas", "simulacao", "teste_conexao"
+                    ],
+                    "data": [
+                        {
+                            "service_id": self.__service_id,
+                            "data_values": {
+                                "info": "I know nothing yet but I'll learn something soon."
+                            }
+                        }
+                    ]
+
+                #     "services": [
+                #         {
+                #             "name": "PeopleMobilityReasoning",
+                #             "parameters": {
+                #                # "example_parameter": "float"
+                #             },
+                #             "return_type": "string"
+                #         }
+                #     ],
+                #     "tokenId": self.__token_id,
+                #     "client_time": time.time(),
+                #     "tag": [
+                #         "topicos_1", "TrafegoPessoas"
+                # ]
             }
         else:
             payload_data = {}
@@ -127,22 +161,19 @@ class Raise2SelfRegister:
     """
     def self_register(self):
         if self.__do_register_client():
-            self.__do_register_service()
-        # res = self.__do_service_call(HttpRaise2Call.CLIENT_REGISTER)
-        # # logging.debug("resultado foi")
-        # # logging.debug(res)
-        # if res:
-        #     json_res = json.loads(res)
-        #     self.__token_id = json_res['tokenId']
-        #     logging.debug("we got this token id: %s" % self.__token_id)
-        #     res = self.__do_service_call(HttpRaise2Call.SERVICE_REGISTER)
-        #     if res:
-        #         services_registered = json.loads(res)
-        #         logging.debug(services_registered)
-        #     else:
-        #         logging.error("something's got wrong when we tried to register our service")
-        # else:
-        #     logging.error("something's got wrong and we got no token")
+            i = 0
+            while True:
+                i += 1
+                if i > 1:
+                    logging.info("MAIS UMA TENTANTIVA {}".format(i))
+                n = self.__do_register_service()
+                if n:
+                    self.__do_register_data()
+
+                    self.__do_list_data()
+                    break
+                elif i > 3:
+                    break
 
     def __do_service_call(self, service_key):
         service_config = self.__get_config__(service_key)
@@ -166,79 +197,100 @@ class Raise2SelfRegister:
         if res:
             services_registered = json.loads(res)
             logging.debug(services_registered)
+            #TODO tornar o codigo dinamico para o caso de varios servicos
+            self.__service_id = services_registered['services'][0]['service_id']
             return True
         else:
             logging.error("something's got wrong when we tried to register our service")
             return False
 
-
-class Raise2SelfRegisterUglyWay:
-    def __init__(self, config_data):
-        pass
-
-    def self_register(self):
-        logging.info("trying to self register in the ugly way")
-
-        url = 'http://raise.uiot.org/client/register/'
-        payload = {
-            "name": "RaspberryPI",
-            "chipset": "AMD790FX",
-            "mac": "FF:FF:FF:FF:FF:FF",
-            "serial": "C213",
-            "processor": "IntelI3",
-            "channel": "Ethernet",
-            "client_time": 1317427200,
-            "tag": [
-                "cebola"
-            ]
-        }
-        headers = {'content-type': 'application/json'}
-        device_request = requests.post(url, data=json.dumps(payload), headers=headers)
-        logging.debug("> status_code %s" % device_request.status_code)
-        logging.debug("> content")
-        logging.debug(device_request.content)
-
-        token_id = None
-
-        if device_request.json()['code'] is 200:
-            token_id = device_request.json()['token_id']
-            logging.info("client register worked")
-            logging.debug("we got this token id: %s" % token_id)
-
-        elif device_request.json()['code'] in (400, 500):
-            logging.info("something's got wrong and we got %s" % (device_request.json()['code']))
-
-        if token_id:
-            url = 'http://raise.uiot.org/service/register/'
-            payload = {
-                {
-                    "services": [
-                        {
-                            "name": "Get temp",
-                            "parameters": {
-                                "example_parameter": "float"
-                            },
-                            "return_type": "float"
-                        }
-                    ],
-                    "tokenId": token_id,
-                    "client_time": 1317427200,
-                    "tag": [
-                        "Cebola"
-                    ]
-                }
-            }
-            headers = {'content-type': 'application/json'}
-            device_request = requests.post(url, data=json.dumps(payload), headers=headers)
-            logging.debug("> status_code %s" % device_request.status_code)
-            logging.debug("> content")
-            logging.debug(device_request.content)
-
-            if device_request.json()['code'] is 200:
-                pass
-
-            elif device_request.json()['code'] in (400, 500):
-                logging.info("something's got wrong and we got %s" % (device_request.json()['code']))
-
+    def __do_register_data(self):
+        res = self.__do_service_call(HttpRaise2Call.DATA_REGISTER)
+        if res:
+            data_registered = json.loads(res)
+            logging.debug(data_registered)
+            return True
         else:
-            logging.debug("There's no token.")
+            logging.error("something's got wrong when we tried to register data at our service")
+            return False
+
+    def __do_list_data(self):
+        res = self.__do_service_call(HttpRaise2Call.DATA_LIST)
+        if res:
+            data = json.loads(res)
+            logging.debug("data from RAISe: %s" % data)
+            return True
+        else:
+            logging.error("something's got wrong when we tried to register data at our service")
+            return False
+
+# class Raise2SelfRegisterUglyWay:
+#     def __init__(self, config_data):
+#         pass
+#
+#     def self_register(self):
+#         logging.info("trying to self register in the ugly way")
+#
+#         url = 'http://raise.uiot.org/client/register/'
+#         payload = {
+#             "name": "RaspberryPI",
+#             "chipset": "AMD790FX",
+#             "mac": "FF:FF:FF:FF:FF:FF",
+#             "serial": "C213",
+#             "processor": "IntelI3",
+#             "channel": "Ethernet",
+#             "client_time": 1317427200,
+#             "tag": [
+#                 "cebola"
+#             ]
+#         }
+#         headers = {'content-type': 'application/json'}
+#         device_request = requests.post(url, data=json.dumps(payload), headers=headers)
+#         logging.debug("> status_code %s" % device_request.status_code)
+#         logging.debug("> content")
+#         logging.debug(device_request.content)
+#
+#         token_id = None
+#
+#         if device_request.json()['code'] is 200:
+#             token_id = device_request.json()['token_id']
+#             logging.info("client register worked")
+#             logging.debug("we got this token id: %s" % token_id)
+#
+#         elif device_request.json()['code'] in (400, 500):
+#             logging.info("something's got wrong and we got %s" % (device_request.json()['code']))
+#
+#         if token_id:
+#             url = 'http://raise.uiot.org/service/register/'
+#             payload = {
+#                 {
+#                     "services": [
+#                         {
+#                             "name": "Get temp",
+#                             "parameters": {
+#                                 "example_parameter": "float"
+#                             },
+#                             "return_type": "float"
+#                         }
+#                     ],
+#                     "tokenId": token_id,
+#                     "client_time": 1317427200,
+#                     "tag": [
+#                         "Cebola"
+#                     ]
+#                 }
+#             }
+#             headers = {'content-type': 'application/json'}
+#             device_request = requests.post(url, data=json.dumps(payload), headers=headers)
+#             logging.debug("> status_code %s" % device_request.status_code)
+#             logging.debug("> content")
+#             logging.debug(device_request.content)
+#
+#             if device_request.json()['code'] is 200:
+#                 pass
+#
+#             elif device_request.json()['code'] in (400, 500):
+#                 logging.info("something's got wrong and we got %s" % (device_request.json()['code']))
+#
+#         else:
+#             logging.debug("There's no token.")
