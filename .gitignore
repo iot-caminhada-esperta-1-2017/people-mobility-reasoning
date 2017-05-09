@@ -89,7 +89,7 @@ ENV/
 .ropeproject
 
 # PyCharm settings
-.idea
+.idea/
 
 # project's settings
 *.log
