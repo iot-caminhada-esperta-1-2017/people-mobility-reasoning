@@ -132,21 +132,6 @@ class Raise2SelfRegister:
                             }
                         }
                     ]
-
-                #     "services": [
-                #         {
-                #             "name": "PeopleMobilityReasoning",
-                #             "parameters": {
-                #                # "example_parameter": "float"
-                #             },
-                #             "return_type": "string"
-                #         }
-                #     ],
-                #     "tokenId": self.__token_id,
-                #     "client_time": time.time(),
-                #     "tag": [
-                #         "topicos_1", "TrafegoPessoas"
-                # ]
             }
         else:
             payload_data = {}
