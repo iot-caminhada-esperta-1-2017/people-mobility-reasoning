@@ -54,4 +54,5 @@ if __name__ == '__main__':
         data_handler = Raise2DataHandler(raise2_config)
         data_handler.set_token_id(self_register.get_token_id())
         data_handler.set_service_id(self_register.get_service_id())
+        data_handler.send_fake_data()
         data_handler.get_data_pos()

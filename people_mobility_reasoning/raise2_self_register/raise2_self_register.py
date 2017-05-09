@@ -226,6 +226,7 @@ class Raise2SelfRegister(Raise2Handler):
 class Raise2DataHandler(Raise2Handler):
 
     def __do_register_data(self):
+
         res = self._do_service_call(HttpRaise2Call.DATA_REGISTER)
         if res:
             data_registered = json.loads(res)
@@ -245,10 +246,13 @@ class Raise2DataHandler(Raise2Handler):
             logging.error("something's got wrong when we tried to register data at our service")
             return False
 
+    def send_fake_data(self):
+        return self.__do_register_data()
+
     def get_data_pos(self):
         res = self.__do_list_data()
         #TODO use data to reason about people mobility
 
     #TODO check if the service_key parameter is necessary
     def _build_query_string(self):
-        return "tokenId=%s&service_id=%s" % (self.get_token_id(), self.get_service_id())
+        return "tokenId=%s&tag=topicos_1" % (self.get_token_id()) #, self.get_service_id()
