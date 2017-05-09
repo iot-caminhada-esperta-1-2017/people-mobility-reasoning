@@ -23,7 +23,8 @@ def setup_logging(
     default_level=logging.INFO,
     env_key='LOG_CFG'
 ):
-    """Setup logging configuration from a JSON file.
+    """
+    Setup logging configuration from a JSON file.
 
     """
     path = default_path
@@ -46,11 +47,7 @@ if __name__ == '__main__':
 
     raise2_config = get_dict_from_file(CONFIG_RAISE2_FILE)
 
-    # logging.info("Registering in the ugly way")
-    # ugly_self_register = Raise2SelfRegisterUglyWay(raise2_config)
-    # ugly_self_register.self_register()
-
     logging.info("-----------------------------")
-    logging.info("Registering in a prettier way")
+    logging.info("Registering services at RAISe")
     self_register = Raise2SelfRegister(raise2_config)
     self_register.self_register()

@@ -3,8 +3,6 @@ import json
 import logging
 import time
 
-from statsmodels.sandbox.nonparametric.densityorthopoly import F2Poly
-
 
 class HttpRaise2Call:
     CLIENT_LIST = 'client_list'
@@ -67,7 +65,7 @@ class Raise2SelfRegister:
         self.__raise_config = config_data
 
     """
-    # TODO: put this documentation in the pythonic way.
+    # TODO put this documentation in the pythonic way.
 
     global configuration is in the dictionary's root.
     specific configuration is in a sub dictionary into 'services' object.
@@ -223,74 +221,3 @@ class Raise2SelfRegister:
         else:
             logging.error("something's got wrong when we tried to register data at our service")
             return False
-
-# class Raise2SelfRegisterUglyWay:
-#     def __init__(self, config_data):
-#         pass
-#
-#     def self_register(self):
-#         logging.info("trying to self register in the ugly way")
-#
-#         url = 'http://raise.uiot.org/client/register/'
-#         payload = {
-#             "name": "RaspberryPI",
-#             "chipset": "AMD790FX",
-#             "mac": "FF:FF:FF:FF:FF:FF",
-#             "serial": "C213",
-#             "processor": "IntelI3",
-#             "channel": "Ethernet",
-#             "client_time": 1317427200,
-#             "tag": [
-#                 "cebola"
-#             ]
-#         }
-#         headers = {'content-type': 'application/json'}
-#         device_request = requests.post(url, data=json.dumps(payload), headers=headers)
-#         logging.debug("> status_code %s" % device_request.status_code)
-#         logging.debug("> content")
-#         logging.debug(device_request.content)
-#
-#         token_id = None
-#
-#         if device_request.json()['code'] is 200:
-#             token_id = device_request.json()['token_id']
-#             logging.info("client register worked")
-#             logging.debug("we got this token id: %s" % token_id)
-#
-#         elif device_request.json()['code'] in (400, 500):
-#             logging.info("something's got wrong and we got %s" % (device_request.json()['code']))
-#
-#         if token_id:
-#             url = 'http://raise.uiot.org/service/register/'
-#             payload = {
-#                 {
-#                     "services": [
-#                         {
-#                             "name": "Get temp",
-#                             "parameters": {
-#                                 "example_parameter": "float"
-#                             },
-#                             "return_type": "float"
-#                         }
-#                     ],
-#                     "tokenId": token_id,
-#                     "client_time": 1317427200,
-#                     "tag": [
-#                         "Cebola"
-#                     ]
-#                 }
-#             }
-#             headers = {'content-type': 'application/json'}
-#             device_request = requests.post(url, data=json.dumps(payload), headers=headers)
-#             logging.debug("> status_code %s" % device_request.status_code)
-#             logging.debug("> content")
-#             logging.debug(device_request.content)
-#
-#             if device_request.json()['code'] is 200:
-#                 pass
-#
-#             elif device_request.json()['code'] in (400, 500):
-#                 logging.info("something's got wrong and we got %s" % (device_request.json()['code']))
-#
-#         else:
-#             logging.debug("There's no token.")
