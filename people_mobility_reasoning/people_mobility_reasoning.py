@@ -5,7 +5,7 @@ import logging
 import logging.config
 
 # from raise2_self_register.raise2_self_register import Raise2SelfRegisterUglyWay
-from raise2_self_register.raise2_self_register import Raise2SelfRegister
+from raise2_self_register.raise2_self_register import Raise2SelfRegister, Raise2DataHandler
 from load_dict_from_file.load_dict_from_file import get_dict_from_file
 
 
@@ -50,4 +50,8 @@ if __name__ == '__main__':
     logging.info("-----------------------------")
     logging.info("Registering services at RAISe")
     self_register = Raise2SelfRegister(raise2_config)
-    self_register.self_register()
+    if self_register.self_register():
+        data_handler = Raise2DataHandler(raise2_config)
+        data_handler.set_token_id(self_register.get_token_id())
+        data_handler.set_service_id(self_register.get_service_id())
+        data_handler.get_data_pos()

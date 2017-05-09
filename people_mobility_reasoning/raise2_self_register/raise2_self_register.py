@@ -19,10 +19,22 @@ class HttpRaise2Call:
         self.__config["base_uri"] = config["raise2_api_uri"]
         self.__config["timeout"] = config["timeout"]
 
-    def call(self, data_to_sent):
-        # logging.info("trying to self register in the pretty way")
-        url = "%s%s" % (self.__config["base_uri"], self.__config["uri"])
-        headers = {'content-type': 'application/json', 'Accept': 'application/json'}
+    def call(self, **params): #data_to_sent
+        # logging.info("----> trying to call RAISe")
+
+        query_string = ''
+        if 'query' in params and params['query']:
+            query_string = '?' + params['query']
+
+        if 'payload' in params:
+            data_to_sent = params['payload']
+        else:
+            data_to_sent = ''
+
+        url = "%s%s%s" % (self.__config["base_uri"], self.__config["uri"], query_string)
+        headers = {'Accept': 'application/json'}
+        if data_to_sent:
+            headers['content-type'] = 'application/json'
         req = None
         try:
             p = json.dumps(data_to_sent)
@@ -50,19 +62,32 @@ class HttpRaise2Call:
         # logging.debug(req.json()['code'])
 #        if req and req.json()['code'] is 200:
         code_result = req.json()['code']
-        if code_result == '200':
-            # logging.debug("> content: %s" % req.content)
+        if code_result == '200' or code_result == 200:
             return req.content
         else:
             return None
 
 
-class Raise2SelfRegister:
+class Raise2Handler(object):
     # store all RAISe 2 configuration data
     __raise_config = []
 
     def __init__(self, config_data):
         self.__raise_config = config_data
+        self._token_id = None
+        self._service_id = None
+
+    def get_token_id(self):
+        return self._token_id
+
+    def set_token_id(self, token_id):
+        self._token_id = token_id
+
+    def get_service_id(self):
+        return self._service_id
+
+    def set_service_id(self, service_id):
+        self._service_id = service_id
 
     """
     # TODO put this documentation in the pythonic way.
@@ -70,7 +95,7 @@ class Raise2SelfRegister:
     global configuration is in the dictionary's root.
     specific configuration is in a sub dictionary into 'services' object.
     """
-    def __get_config__(self, config_data):
+    def _get_config__(self, config_data):
         new_config_data = {}
         for k, v in self.__raise_config.iteritems():
             if not isinstance(v, dict):
@@ -82,7 +107,7 @@ class Raise2SelfRegister:
                             new_config_data[kc] = vc
         return new_config_data
 
-    def __build_payload_data__(self, service_key):
+    def _build_payload_data__(self, service_key):
         if service_key == HttpRaise2Call.CLIENT_REGISTER:
             # TODO: build the payload for real
             payload_data = {
@@ -109,7 +134,7 @@ class Raise2SelfRegister:
                             "return_type": "string"
                         }
                     ],
-                    "tokenId": self.__token_id,
+                    "tokenId": self.get_token_id(),
                     "client_time": time.time(),
                     "tag": [
                         "topicos_1", "TrafegoPessoas", "simulacao", "teste_conexao"
@@ -119,14 +144,14 @@ class Raise2SelfRegister:
             # TODO: build the payload for real
             payload_data = {
 
-                    "token": self.__token_id,
+                    "token": self.get_token_id(),
                     "client_time": time.time(),
                     "tag": [
                         "topicos_1", "TrafegoPessoas", "simulacao", "teste_conexao"
                     ],
                     "data": [
                         {
-                            "service_id": self.__service_id,
+                            "service_id": self.get_service_id(),
                             "data_values": {
                                 "info": "I know nothing yet but I'll learn something soon."
                             }
@@ -136,6 +161,21 @@ class Raise2SelfRegister:
         else:
             payload_data = {}
         return payload_data
+
+    def _do_service_call(self, service_key, **params):
+        service_config = self._get_config__(service_key)
+        service_runner = HttpRaise2Call(service_config)
+
+        query_string = ''
+        if 'query' in params and params['query']:
+            query_string = params['query']
+
+        payload_data = self._build_payload_data__(service_key)
+        # query_string = self._build_query_string(service_key)
+        return service_runner.call(query=query_string, payload=payload_data)
+
+
+class Raise2SelfRegister(Raise2Handler):
 
     """
     registration workflow:
@@ -151,44 +191,42 @@ class Raise2SelfRegister:
                     logging.info("MAIS UMA TENTANTIVA {}".format(i))
                 n = self.__do_register_service()
                 if n:
-                    self.__do_register_data()
-
-                    self.__do_list_data()
+                    return True
                     break
                 elif i > 3:
+                    return False
                     break
-
-    def __do_service_call(self, service_key):
-        service_config = self.__get_config__(service_key)
-        service_runner = HttpRaise2Call(service_config)
-        payload_data = self.__build_payload_data__(service_key)
-        return service_runner.call(payload_data)
+        else:
+            return False
 
     def __do_register_client(self):
-        res = self.__do_service_call(HttpRaise2Call.CLIENT_REGISTER)
+        res = self._do_service_call(HttpRaise2Call.CLIENT_REGISTER)
         if res:
             json_res = json.loads(res)
-            self.__token_id = json_res['tokenId']
-            logging.debug("we got this token id: %s" % self.__token_id)
+            self.set_token_id(json_res['tokenId'])
+            logging.debug("we got this token id: %s" % self.get_token_id())
             return True
         else:
             logging.error("something's got wrong and we got no token")
             return False
 
     def __do_register_service(self):
-        res = self.__do_service_call(HttpRaise2Call.SERVICE_REGISTER)
+        res = self._do_service_call(HttpRaise2Call.SERVICE_REGISTER)
         if res:
             services_registered = json.loads(res)
             logging.debug(services_registered)
             #TODO tornar o codigo dinamico para o caso de varios servicos
-            self.__service_id = services_registered['services'][0]['service_id']
+            self.set_service_id(services_registered['services'][0]['service_id'])
             return True
         else:
             logging.error("something's got wrong when we tried to register our service")
             return False
 
+
+class Raise2DataHandler(Raise2Handler):
+
     def __do_register_data(self):
-        res = self.__do_service_call(HttpRaise2Call.DATA_REGISTER)
+        res = self._do_service_call(HttpRaise2Call.DATA_REGISTER)
         if res:
             data_registered = json.loads(res)
             logging.debug(data_registered)
@@ -198,7 +236,7 @@ class Raise2SelfRegister:
             return False
 
     def __do_list_data(self):
-        res = self.__do_service_call(HttpRaise2Call.DATA_LIST)
+        res = self._do_service_call(HttpRaise2Call.DATA_LIST, query=self._build_query_string())
         if res:
             data = json.loads(res)
             logging.debug("data from RAISe: %s" % data)
@@ -206,3 +244,11 @@ class Raise2SelfRegister:
         else:
             logging.error("something's got wrong when we tried to register data at our service")
             return False
+
+    def get_data_pos(self):
+        res = self.__do_list_data()
+        #TODO use data to reason about people mobility
+
+    #TODO check if the service_key parameter is necessary
+    def _build_query_string(self):
+        return "tokenId=%s&service_id=%s" % (self.get_token_id(), self.get_service_id())
