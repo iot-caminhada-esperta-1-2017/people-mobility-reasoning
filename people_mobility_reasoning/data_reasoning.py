@@ -20,9 +20,10 @@ from geopy.distance import vincenty
   },
 """
 
+
 class MobilityReasoning:
 
-    def MobilityReasoning(self):
+    def __init__(self):
         self.__data = None
 
     def set_data(self, data):
@@ -44,12 +45,17 @@ class MobilityReasoning:
         print("Base id is %s" % self.__data[1]['service_id'])
         for item in self.__data:
             # time_str = datetime.datetime.fromtimestamp(int(item['client_time'])).strftime('%Y-%m-%d %H:%M:%S')
-            cc = int(item['client_time'])
-            tt = datetime.datetime.utcfromtimestamp(cc/1000)
+            cc = int(item['server_time'])
+            tt = datetime.datetime.fromtimestamp(cc/1000)
             time_str = tt.strftime('%Y-%m-%d %H:%M:%S')
             it_act = item['data_values']['latitude'], item['data_values']['longitude']
             dist = self.get_distance(it_ref, it_act)
             print("Distance between %s and id %s %s is %s meters (at %s)" % (it_ref, item['service_id'], it_act, dist, time_str))
+
+        # self.build_time_partitions(self.__data)
+        self.build_locals_list()
+        for l in self.__locals:
+            print l
 
 
     def get_location_description(self, place):
@@ -66,3 +72,13 @@ class MobilityReasoning:
     def get_distance(self, a, b):
         d = vincenty(a, b).meters
         return d
+
+    def build_locals_list(self):
+        locations = []
+        for loca in self.__data:
+            tp = (loca['data_values']['latitude'], loca['data_values']['longitude'])
+            rr= any(item for item in locations if item[0][0] == tp[0] and item[0][1] == tp[1])
+            if not rr:
+                desc = self.get_location_description(tp)
+                locations.append((tp, desc))
+        self.__locals = locations
