@@ -7,6 +7,7 @@ import logging.config
 # from raise2_self_register.raise2_self_register import Raise2SelfRegisterUglyWay
 from raise2_self_register.raise2_self_register import Raise2SelfRegister, Raise2DataHandler
 from load_dict_from_file.load_dict_from_file import get_dict_from_file
+from data_reasoning import MobilityReasoning
 
 
 
@@ -27,6 +28,10 @@ def setup_logging(
     Setup logging configuration from a JSON file.
 
     """
+    # configure the log level for the urllib3 library (typically used by requests).
+    # By default, this library logs every request and messes up the log.
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
     path = default_path
     value = os.getenv(env_key, None)
     if value:
@@ -54,5 +59,9 @@ if __name__ == '__main__':
         data_handler = Raise2DataHandler(raise2_config)
         data_handler.set_token_id(self_register.get_token_id())
         data_handler.set_service_id(self_register.get_service_id())
-        data_handler.send_fake_data()
-        data_handler.get_data_pos()
+        # data_handler.send_fake_data()
+        data = data_handler.get_data_pos()
+        if data:
+            reason = MobilityReasoning()
+            reason.set_data(data)
+            reason.do_the_magic()

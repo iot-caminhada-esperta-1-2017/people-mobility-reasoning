@@ -241,18 +241,22 @@ class Raise2DataHandler(Raise2Handler):
         if res:
             data = json.loads(res)
             logging.debug("data from RAISe: %s" % data)
-            return True
+            if data['code'] == 200:
+                return data['values']
+            else:
+                return None
         else:
             logging.error("something's got wrong when we tried to register data at our service")
-            return False
+            return None
 
     def send_fake_data(self):
         return self.__do_register_data()
 
     def get_data_pos(self):
         res = self.__do_list_data()
-        #TODO use data to reason about people mobility
+        logging.debug("There's %s position data" % len(res))
+        return res
 
     #TODO check if the service_key parameter is necessary
     def _build_query_string(self):
-        return "tokenId=%s&tag=topicos_1" % (self.get_token_id()) #, self.get_service_id()
+        return "tokenId=%s&tag=%s" % (self.get_token_id(), 'CaminhadaData') #, self.get_service_id()
