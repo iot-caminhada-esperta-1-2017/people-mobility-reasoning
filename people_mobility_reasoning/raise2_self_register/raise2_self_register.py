@@ -2,11 +2,14 @@ import requests
 import json
 import logging
 import time
+import os
 
+AUTH_FILE_NAME = 'config/auth.data'
 
 class HttpRaise2Call:
     CLIENT_LIST = 'client_list'
     CLIENT_REGISTER = 'client_register'
+    CLIENT_REVALIDATE = 'client_revalidate'
     SERVICE_LIST = 'service_list'
     SERVICE_REGISTER = 'service_service'
     DATA_LIST = 'data_list'
@@ -40,6 +43,7 @@ class HttpRaise2Call:
             p = json.dumps(data_to_sent)
             logging.debug("{} {} headers={} payload={}".format(self.__config["method"], url, headers, p))
             req = requests.request(self.__config["method"], url, data=p, headers=headers, timeout=self.__config["timeout"]) #p=json.dumps(data_to_sent)
+            # logging.debug(req)
             # logging.debug(req.content)
             req.raise_for_status()
         except requests.exceptions.HTTPError as err:
@@ -61,6 +65,11 @@ class HttpRaise2Call:
         # logging.debug("JSON")
         # logging.debug(req.json()['code'])
 #        if req and req.json()['code'] is 200:
+#         print req.content
+
+        # if req.headers['content-type'] != 'application/json':
+        #     return None
+
         code_result = req.json()['code']
         if code_result == '200' or code_result == 200:
             return req.content
@@ -107,7 +116,7 @@ class Raise2Handler(object):
                             new_config_data[kc] = vc
         return new_config_data
 
-    def _build_payload_data__(self, service_key):
+    def _build_payload_data__(self, service_key, data=None):
         if service_key == HttpRaise2Call.CLIENT_REGISTER:
             # TODO: build the payload for real
             payload_data = {
@@ -140,6 +149,15 @@ class Raise2Handler(object):
                         "topicos_1", "TrafegoPessoas", "simulacao", "teste_conexao"
                 ]
             }
+        elif service_key == HttpRaise2Call.CLIENT_REVALIDATE:
+            # TODO: build the payload for real
+            payload_data = {
+
+                    "tokenId": self.get_token_id(),
+                    "services": [
+                        self.get_service_id()
+                    ]
+            }
         elif service_key == HttpRaise2Call.DATA_REGISTER:
             # TODO: build the payload for real
             payload_data = {
@@ -147,13 +165,13 @@ class Raise2Handler(object):
                     "token": self.get_token_id(),
                     "client_time": time.time(),
                     "tag": [
-                        "topicos_1", "TrafegoPessoas", "simulacao", "teste_conexao"
+                        "topicos_1", "TrafegoPessoas", "CaminhadaInferencia", "teste_conexao", "v1"
                     ],
                     "data": [
                         {
                             "service_id": self.get_service_id(),
                             "data_values": {
-                                "info": "I know nothing yet but I'll learn something soon."
+                                "info": data
                             }
                         }
                     ]
@@ -169,13 +187,33 @@ class Raise2Handler(object):
         query_string = ''
         if 'query' in params and params['query']:
             query_string = params['query']
+        if 'data' in params:
+            data = params['data']
+        else:
+            data = None
 
-        payload_data = self._build_payload_data__(service_key)
+        payload_data = self._build_payload_data__(service_key, data)
+        if 'data' in params:
+            print "Inference data is:"
+            print payload_data
         # query_string = self._build_query_string(service_key)
         return service_runner.call(query=query_string, payload=payload_data)
 
 
 class Raise2SelfRegister(Raise2Handler):
+
+    def __load_auth(self):
+        # register_data = {
+        #     'token_id': self.get_token_id(),
+        #     'service_id': self.get_service_id()
+        # }
+        if os.path.exists(AUTH_FILE_NAME):
+            f = open(AUTH_FILE_NAME, 'r')
+            raw_data = f.read()
+            f.close()
+            register_data = json.loads(raw_data)
+            self.set_token_id(register_data['token_id'])
+            self.set_service_id(register_data['service_id'])
 
     """
     registration workflow:
@@ -183,21 +221,28 @@ class Raise2SelfRegister(Raise2Handler):
     POST services
     """
     def self_register(self):
-        if self.__do_register_client():
-            i = 0
-            while True:
-                i += 1
-                if i > 1:
-                    logging.info("MAIS UMA TENTANTIVA {}".format(i))
-                n = self.__do_register_service()
-                if n:
-                    return True
-                    break
-                elif i > 3:
-                    return False
-                    break
+
+        self.__load_auth()
+
+        if self.get_token_id():
+            return self.__do_revalidate_client()
         else:
-            return False
+
+            if self.__do_register_client():
+                i = 0
+                while True:
+                    i += 1
+                    if i > 1:
+                        logging.info("MAIS UMA TENTANTIVA {}".format(i))
+                    n = self.__do_register_service()
+                    if n:
+                        return True
+                        break
+                    elif i > 3:
+                        return False
+                        break
+            else:
+                return False
 
     def __do_register_client(self):
         res = self._do_service_call(HttpRaise2Call.CLIENT_REGISTER)
@@ -217,17 +262,44 @@ class Raise2SelfRegister(Raise2Handler):
             logging.debug(services_registered)
             #TODO tornar o codigo dinamico para o caso de varios servicos
             self.set_service_id(services_registered['services'][0]['service_id'])
+
+            self.__save_auth()
+
             return True
         else:
             logging.error("something's got wrong when we tried to register our service")
             return False
 
+    def __save_auth(self):
+        register_data = {
+            'token_id': self.get_token_id(),
+            'service_id': self.get_service_id()
+        }
+        f = open(AUTH_FILE_NAME, 'w')
+        json.dump(register_data, f)
+        f.close()
+
+    def __do_revalidate_client(self):
+        res = self._do_service_call(HttpRaise2Call.CLIENT_REVALIDATE)
+        if res:
+            json_res = json.loads(res)
+            self.set_token_id(json_res['tokenId'])
+
+            logging.debug("we got this new token id: %s" % self.get_token_id())
+
+            self.__save_auth()
+
+            return True
+        else:
+            logging.error("something's got wrong and we got no token")
+            return False
+
 
 class Raise2DataHandler(Raise2Handler):
 
-    def __do_register_data(self):
+    def __do_send_data(self, data):
 
-        res = self._do_service_call(HttpRaise2Call.DATA_REGISTER)
+        res = self._do_service_call(HttpRaise2Call.DATA_REGISTER, data=data)
         if res:
             data_registered = json.loads(res)
             logging.debug(data_registered)
@@ -249,8 +321,8 @@ class Raise2DataHandler(Raise2Handler):
             logging.error("something's got wrong when we tried to register data at our service")
             return None
 
-    def send_fake_data(self):
-        return self.__do_register_data()
+    def send_data(self, data):
+        return self.__do_send_data(data)
 
     def get_data_pos(self):
         res = self.__do_list_data()
@@ -259,4 +331,4 @@ class Raise2DataHandler(Raise2Handler):
 
     #TODO check if the service_key parameter is necessary
     def _build_query_string(self):
-        return "tokenId=%s&tag=%s" % (self.get_token_id(), 'CaminhadaData') #, self.get_service_id()
+        return "tokenId=%s&tag=%s" % (self.get_token_id(), 'CaminhadaData,build-0622-1930') #build-0622-1930, build-0621-0950

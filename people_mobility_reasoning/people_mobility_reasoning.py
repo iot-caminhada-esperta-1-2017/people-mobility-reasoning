@@ -64,4 +64,6 @@ if __name__ == '__main__':
         if data:
             reason = MobilityReasoning()
             reason.set_data(data)
-            reason.do_the_magic()
+            reason_data = reason.do_the_magic()
+            if reason_data:
+                data_handler.send_data(reason_data)
